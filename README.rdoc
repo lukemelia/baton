@@ -1,0 +1,53 @@
+= Baton
+
+Baton is a server written in node that implements the publish-side of Basic HTTP Push Relay Protocol (http://pushmodule.slact.net/protocol.html) combined with a subscriber interface based on Socket.IO (http://socket.io/).
+
+To put it another way, REST-ful on the backend, and WebSocket-y on the front end.
+
+== Example
+
+  TODO: some example code
+  
+== Current status
+
+In development, Experimental - has not been run in production or even tested under load
+
+== Dependencies
+
+TODO: flesh out
+
+== Usage
+
+  git clone ...
+  cd baton
+  node server.js
+
+== Development
+
+Tests are in Ruby's RSpec. Test dependencies can be installed with `bundle install`. Run specs with `rake spec`
+ 
+== TODO
+
+  * Now
+    * Port tests to a JS framework
+    * Concurrency specs
+    * Way for the client to report the last timestamp it has seen to avoid duplicate messages on reconnection
+    * Refactor pub.js
+    * Finish README
+    * Stress test
+  * Future version
+    * Redis pub/sub on the backend
+  
+
+== Configuration
+
+TODO: write this section
+
+== Credits
+
+Luke Melia <http://www.lukemelia.com> is the author and maintainer of baton.
+Thanks to Leo P. for the Nginx HTTP Push Module and the Basic HTTP Push Relay Protocol
+
+== License
+
+BSD
