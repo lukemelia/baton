@@ -127,10 +127,23 @@ class SubscribeResult
   end
 end
 
+def new_client_and_listener
+  listener = MessageListener.new
+  client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
+  return client, listener
+end
+
 def subscribe(channel_id, client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", MessageListener.new), listener = client.listener)
   client.connect
   client.send("SUBSCRIBE #{channel_id}")
   listener.wait_for_message(client)
+end
+
+def subscribe_on_thread(channel_id, client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", MessageListener.new), listener = client.listener, &block)
+  Thread.new do
+    subscribe(channel_id, client, listener)
+    yield if block_given?
+  end
 end
 
 # def subscribe(endpoint, opts = {})

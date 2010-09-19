@@ -184,11 +184,8 @@ describe "publisher endpoint" do
         end
 
         it "should trigger unsubscribes for open subscriber connections" do
-          listener = MessageListener.new
-          client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
-          thread = Thread.new do
-            subscribe("42", client, listener)
-          end
+          client, listener = new_client_and_listener
+          thread = subscribe_on_thread("42", client, listener)
 
           listener.poll_for_message(/SUBSCRIBED 42/)
 
@@ -219,25 +216,20 @@ describe "publisher endpoint" do
         end
 
         specify "The message MUST be immediately delivered to all currently long-held subscriber requests" do
-          listener_1 = MessageListener.new
-          listener_2 = MessageListener.new
-          client_1 = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener_1)
-          client_2 = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener_2)
-
-          thread_1 = Thread.new do
-            subscribe("42", client_1, listener_1)
+          client_1, listener_1 = new_client_and_listener
+          thread_1 = subscribe_on_thread("42", client_1, listener_1) do
             listener_1.wait_for_message(client_1, /Hi Mom/)
           end
-          thread_2= Thread.new do
-            subscribe("42", client_2, listener_2)
+
+          client_2, listener_2 = new_client_and_listener
+          thread_2 = subscribe_on_thread("42", client_2, listener_2) do
             listener_2.wait_for_message(client_2, /Hi Mom/)
           end
 
           sleep 1
           post('/publish/42', 'Hi Mom')
 
-          thread_1.join
-          thread_2.join
+          [thread_1, thread_2].each &:join
         end
       end
 
@@ -291,8 +283,7 @@ describe "publisher endpoint" do
         specify "the message MAY be stored for future retrieval" do
           post('/publish/42', 'Hi Mom')
 
-          listener = MessageListener.new
-          client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
+          client, listener = new_client_and_listener
 
           get('/publish/42').header['x-channel-messages'].should == '1'
 
@@ -303,12 +294,9 @@ describe "publisher endpoint" do
         specify "the oldest message stored for the channel MAY be deleted" do
           post('/publish/42', 'First message')
           post('/publish/42', 'Second message')
-
           get('/publish/42').header['x-channel-messages'].should == '1'
 
-          listener = MessageListener.new
-          client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
-
+          client, listener = new_client_and_listener
           subscribe("42", client, listener)
           listener.wait_for_message(client, /Second message/)
         end
@@ -325,13 +313,10 @@ describe "publisher endpoint" do
         specify "messages are not stored for future retrieval" do
           post('/publish/42', 'Hi Mom')
 
-          listener = MessageListener.new
-          client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
-
+          client, listener = new_client_and_listener
           subscribe("42", client, listener)
 
           get('/publish/42').header['x-channel-messages'].should == '0'
-
           delete('/publish/42')
           
           listener.message.should_not =~ /Hi Mom/
@@ -347,8 +332,8 @@ describe "publisher endpoint" do
       after(:each) do
         stop_server
       end
-      it "should respond with a 400" do
-        send_options_request('/publish/42').code.to_i.should == 404
+      it "should respond with a 405" do
+        send_options_request('/publish/42').code.to_i.should == 405
       end
     end
     

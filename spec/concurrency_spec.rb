@@ -1,109 +1,27 @@
 require 'spec_helper'
 
-describe "concurrency modes" do
+describe "when multiple subscribers on a single channel" do
+  before(:each) do
+    start_server
+  end
+  after(:each) do
+    stop_server
+  end
   
-  # describe ":broadcast" do
-  #   before(:each) do
-  #     @config = { :concurrency => :broadcast }
-  #   end
-  #   
-  #   it "should publish a message to multiple subscribers on a single channel" do
-  #     start_server(@config)
-  #     
-  #     subscribe_result_1 = subscribe('/subscribe/42')
-  #     subscribe_result_2 = subscribe('/subscribe/42')
-  # 
-  #     publish_response = post('/publish/42', 'I think I can')
-  #     
-  #     [subscribe_result_1, subscribe_result_2].each &:thread_join
-  # 
-  #     subscribe_result_1.response.code.to_i.should == 200
-  #     subscribe_result_1.response.body.should == 'I think I can'
-  #     subscribe_result_2.response.code.to_i.should == 200
-  #     subscribe_result_2.response.body.should == 'I think I can'
-  #     publish_response.code.to_i.should == 201
-  #     
-  #     stop_server
-  #   end
-  # end
-  # 
-  # describe ":first" do
-  #   before(:each) do
-  #     @config = { :concurrency => :first }
-  #   end
-  #   
-  #   it "should publish a message to a channel" do
-  #     start_server(@config)
-  #     
-  #     subscribe_result = subscribe('/subscribe/42')
-  #     publish_response = post('/publish/42', 'I think I can')
-  #     
-  #     subscribe_result.thread_join
-  # 
-  #     subscribe_result.response.code.to_i.should == 200
-  #     subscribe_result.response.body.should == 'I think I can'
-  #     publish_response.code.to_i.should == 201
-  #     
-  #     stop_server
-  #   end
-  #   
-  #   
-  #   it "should close connections on a channel subsequent to the first connection with a 409" do
-  #     start_server(@config)
-  #     
-  #     response_1, response_2 = nil, nil
-  #     conn_thread_1 = Thread.new do
-  #       response_1 = get('/subscribe/42')
-  #     end
-  #     conn_thread_2 = Thread.new do
-  #       response_2 = get('/subscribe/42')
-  #     end
-  #     
-  #     conn_thread_2.join
-  #     response_2.code.to_i.should == 409
-  # 
-  #     stop_server
-  #     conn_thread_1.join
-  #   end    
-  # end
-  # 
-  # describe ":last" do
-  #   before(:each) do
-  #     @config = { :concurrency => :last }
-  #   end
-  #   
-  #   it "should publish a message to a channel" do
-  #     start_server(@config)
-  #     
-  #     subscribe_result = subscribe('/subscribe/42')
-  #     publish_response = post('/publish/42', 'I think I can')
-  #     
-  #     subscribe_result.thread_join
-  # 
-  #     subscribe_result.response.code.to_i.should == 200
-  #     subscribe_result.response.body.should == 'I think I can'
-  #     publish_response.code.to_i.should == 201
-  #     
-  #     stop_server
-  #   end
-  #   
-  #   it "should close the original connection with a 409 when a new connection is opened on the same channel" do
-  #     start_server(@config)
-  #     
-  #     response_1, response_2 = nil, nil
-  #     conn_thread_1 = Thread.new do
-  #       response_1 = get('/subscribe/42')
-  #     end
-  #     conn_thread_2 = Thread.new do
-  #       response_2 = get('/subscribe/42')
-  #     end
-  #     
-  #     conn_thread_1.join
-  #     response_1.should_not be_nil
-  #     response_1.code.to_i.should == 409
-  # 
-  #     stop_server
-  #     conn_thread_2.join
-  #   end
-  # end
+  it "should publish messages to all the subscribers" do
+    client_1, listener_1 = new_client_and_listener
+    thread_1 = subscribe_on_thread("42", client_1, listener_1) do
+      listener_1.wait_for_message(client_1, /Hi Mom/)
+    end
+    
+    client_2, listener_2 = new_client_and_listener
+    thread_2 = subscribe_on_thread("42", client_2, listener_2) do
+      listener_2.wait_for_message(client_2, /Hi Mom/)
+    end
+
+    sleep 1
+    post('/publish/42', 'Hi Mom').response.code.to_i.should == 201
+
+    [thread_1, thread_2].each &:join
+  end
 end

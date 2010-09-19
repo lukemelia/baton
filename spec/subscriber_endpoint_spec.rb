@@ -22,8 +22,7 @@ describe "subscriber endpoint" do
           start_server
           put('/publish/42')
           
-          listener = MessageListener.new
-          client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
+          client, listener = new_client_and_listener
           thread = Thread.new do
             subscribe("42", client, listener)
           end
@@ -53,9 +52,9 @@ describe "subscriber endpoint" do
       begin
         start_server({:store_messages => true, :max_messages => 5})
         post('/publish/42', "Hi, Mom!")
-        listener = MessageListener.new
+        client, listener = new_client_and_listener
         thread = Thread.new do
-          subscribe("42", SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener), listener)
+          subscribe("42", client, listener)
         end
         listener.poll_for_message(/Hi, Mom\!/)
         thread.join
