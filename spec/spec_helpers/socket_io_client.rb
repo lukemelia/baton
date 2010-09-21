@@ -16,6 +16,11 @@ class SocketIoClient
     web_socket
   end
   
+  def disconnect
+    web_socket.close
+    @web_socket = nil
+  end
+  
   def web_socket
     @web_socket ||= begin
       ws = WebSocket.new(@uri)

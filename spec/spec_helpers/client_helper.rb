@@ -77,6 +77,7 @@ class MessageListener
   def clear_message
     @message = ''
   end
+  
   def on_client_message(message)
     puts "on_client_message: #{message}"
     @message_received = true
@@ -84,6 +85,8 @@ class MessageListener
   end
   
   def wait_for_message(client, expected_message_or_regexp = nil)
+    puts "wait_for_message #{expected_message_or_regexp.inspect}"
+    puts "#{@message}"
     if @message_received = true && expected_message_or_regexp
       return true if expected_message_or_regexp.is_a?(Regexp) && @message =~ expected_message_or_regexp
       return true if @message == expected_message_or_regexp

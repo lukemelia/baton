@@ -29,7 +29,6 @@ Tests are in Ruby's RSpec. Test dependencies can be installed with `bundle insta
 == TODO
 
   * Now
-    * Concurrency specs
     * Way for the client to report the last timestamp it has seen to avoid duplicate messages on reconnection
     * Refactor pub.js
     * Finish README
