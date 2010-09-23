@@ -185,21 +185,11 @@ describe "publisher endpoint" do
 
       it "should trigger unsubscribes for open subscriber connections" do
         client, listener = new_client_and_listener
-        thread = subscribe_on_thread("42", client, listener)
-
-        listener.poll_for_message(/SUBSCRIBED 42/)
-
-        thread.join
+        subscribe("42", client, listener)
 
         delete('/publish/42')
 
-        thread = Thread.new do
-          listener.wait_for_message(client)
-        end
-
-        listener.poll_for_message(/UNSUBSCRIBED 42.*CHANNEL DELETED/)
-
-        thread.join
+        listener.wait_for_unsubscribed(client, '42', 'CHANNEL DELETED')
       end
     end
   end

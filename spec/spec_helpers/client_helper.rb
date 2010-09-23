@@ -70,6 +70,8 @@ class MessageListener
   
   def initialize
     @message = ''
+    @subscribes = {}
+    @unsubscribes = {}
   end
   
   attr_reader :message
@@ -79,9 +81,28 @@ class MessageListener
   end
   
   def on_client_message(message)
-    puts "on_client_message: #{message}"
-    @message_received = true
-    @message << message
+    puts "on_client_message: #{message.inspect}"
+    unless message.nil? || message == ''
+      @message_received = true
+      @message << message
+    end
+  end
+  
+  def on_subscribed(channel_id)
+    @subscribes[channel_id] = true
+  end
+  
+  def on_unsubscribed(channel_id, reason)
+    @unsubscribes[channel_id] = reason
+  end
+  
+  def wait_for_subscription_confirmation(client, channel_id)
+    if @subscribes[channel_id]
+      return
+    else
+      client.receive
+      wait_for_subscription_confirmation(client, channel_id)
+    end
   end
   
   def wait_for_message(client, expected_message_or_regexp = nil)
@@ -114,6 +135,20 @@ class MessageListener
       end
     end
   end
+  
+  def wait_for_unsubscribed(client, expected_channel_id, expected_reason_or_regexp)
+    puts "wait_for_unsubscribed #{expected_channel_id.inspect}, #{expected_reason_or_regexp.inspect}"
+    if reason = @unsubscribes[expected_channel_id]
+      return true if expected_reason_or_regexp.is_a?(Regexp) && reason =~ @unsubscribes[expected_channel_id]
+      return true if reason == @unsubscribes[expected_channel_id]
+    end
+    
+    while (@unsubscribes[expected_channel_id].nil?)
+      client.receive
+    end
+
+    wait_for_unsubscribed(client, expected_channel_id, expected_reason_or_regexp)
+  end
 end
 
 class SubscribeResult
@@ -132,39 +167,20 @@ end
 
 def new_client_and_listener
   listener = MessageListener.new
-  client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
+  client = BatonClient.new("ws://0.0.0.0:8080/rt/websocket", listener)
   return client, listener
 end
 
-def subscribe(channel_id, client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", MessageListener.new), listener = client.listener)
+def subscribe(channel_id, client = BatonClient.new("ws://0.0.0.0:8080/rt/websocket", MessageListener.new), listener = client.listener)
   client.connect
-  client.send("SUBSCRIBE #{channel_id}")
-  listener.wait_for_message(client)
+  client.subscribe(channel_id)
+  listener.wait_for_subscription_confirmation(client, channel_id)
 end
 
-def subscribe_on_thread(channel_id, client = SocketIoClient.new("ws://0.0.0.0:8080/rt/websocket", MessageListener.new), listener = client.listener, &block)
+def subscribe_on_thread(channel_id, client = BatonClient.new("ws://0.0.0.0:8080/rt/websocket", MessageListener.new), listener = client.listener, &block)
   Thread.new do
     subscribe(channel_id, client, listener)
     yield if block_given?
   end
 end
 
-# def subscribe(endpoint, opts = {})
-#   publish_endpoint = endpoint.gsub(/subscribe/, 'publish').gsub(/sub/, 'pub')
-#   starting_number_of_subscribers = get(publish_endpoint).response.header['x-channel-subscribers'].to_i
-#   
-#   request_headers = {}
-#   request_headers['If-Modified-Since'] = opts[:if_modified_since] if opts[:if_modified_since]
-#   request_headers['If-None-Match'] = opts[:if_none_match] if opts[:if_none_match]
-#   subscribe_result = SubscribeResult.new
-#   subscribe_result.thread = Thread.new do
-#     client = WebSocket.new("ws://0.0.0.0:8080/")
-#     client.send("SUBSCRIBE 42")
-#     subscribe_result.message = client.receive()
-#   end
-# 
-#   poll_until {
-#     get(publish_endpoint).response.header['x-channel-subscribers'].to_i == starting_number_of_subscribers + 1
-#   }
-#   subscribe_result
-# end

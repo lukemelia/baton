@@ -25,17 +25,31 @@ TODO: flesh out
 == Development
 
 Tests are in Ruby's RSpec. Test dependencies can be installed with `bundle install`. Run specs with `rake spec`
- 
+
+== Client Protocol
+
+This sits on top of Socket.IO's protocol:
+
+=== Messages client -> server:
+
+SUBSCRIBE [CHANNEL_ID]
+SUBSCRIBE [CHANNEL_ID] SINCE [TIMESTAMP]
+UNSUBSCRIBE [CHANNEL_ID]
+
+=== Messages server -> cleint:
+
+SUBSCRIBED [CHANNEL_ID]
+UNSUBSCRIBED [CHANNEL_ID] [REASON]
+[CHANNEL_ID] [TIMESTAMP] [MESSAGE]
+
 == TODO
 
   * Now
-    * Way for the client to report the last timestamp it has seen to avoid duplicate messages on reconnection
     * Refactor pub.js
     * Finish README
     * Stress test
     * Refactor to abstract storage and pub/sub mechanism
     * Clean up debug output on tests
-    * Timestamps / "last message seen" protocol
   * Future version
     * Port tests to a JS framework
     * Redis pub/sub on the backend

@@ -23,23 +23,11 @@ describe "subscriber endpoint" do
           put('/publish/42')
           
           client, listener = new_client_and_listener
-          thread = Thread.new do
-            subscribe("42", client, listener)
-          end
-
-          listener.poll_for_message(/SUBSCRIBED 42/)
-
-          thread.join
+          subscribe("42", client, listener)
 
           delete('/publish/42')
 
-          thread = Thread.new do
-            listener.wait_for_message(client)
-          end
-          
-          listener.poll_for_message(/UNSUBSCRIBED 42.*CHANNEL DELETED/)
-
-          thread.join
+          listener.wait_for_unsubscribed(client, '42', 'CHANNEL DELETED')
         ensure
           stop_server
         end
@@ -53,11 +41,8 @@ describe "subscriber endpoint" do
         start_server({:store_messages => true, :max_messages => 5})
         post('/publish/42', "Hi, Mom!")
         client, listener = new_client_and_listener
-        thread = Thread.new do
-          subscribe("42", client, listener)
-        end
-        listener.poll_for_message(/Hi, Mom\!/)
-        thread.join
+        subscribe("42", client, listener)
+        listener.wait_for_message(client, /Hi, Mom\!/)
       ensure
         stop_server
       end
@@ -70,12 +55,9 @@ describe "subscriber endpoint" do
         start_server({:store_messages => true, :max_messages => 5, :subscribe_socket_io_resource => 'custom'})
         post('/publish/42', "Hi, Mom!")
         listener = MessageListener.new
-        client = SocketIoClient.new("ws://0.0.0.0:8080/custom/websocket", listener)
-        thread = Thread.new do
-          subscribe('42', client, listener)
-        end
-        listener.poll_for_message(/Hi, Mom\!/)
-        thread.join
+        client = BatonClient.new("ws://0.0.0.0:8080/custom/websocket", listener)
+        subscribe('42', client, listener)
+        listener.wait_for_message(client, /Hi, Mom\!/)
       ensure
         stop_server
       end
