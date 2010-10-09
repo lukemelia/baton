@@ -1,5 +1,5 @@
-var jsCore = require('./js.class/core'),
-    msg = require('./message');
+var jsCore = require('../../lib/js.class/core'),
+    msg = require('../models/message');
 
 exports.createPublisherEndpoint = function(configuration, channelManager){
   return new PublisherEndpoint(configuration, channelManager);

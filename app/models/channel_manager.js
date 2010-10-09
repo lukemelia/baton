@@ -1,5 +1,5 @@
-var jsCore = require('./js.class/core');
-require('./underscore');
+var jsCore = require('../../lib/js.class/core');
+require('../../lib//underscore');
 
 exports.createChannelManager = function(configuration) {
   return new ChannelManager(configuration);

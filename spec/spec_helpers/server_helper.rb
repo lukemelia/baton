@@ -20,7 +20,7 @@ module Node
         }.compact.join(" ")
         
         @pid = fork do
-          cmd = "node server.js #{options_string}"
+          cmd = "node baton.js #{options_string}"
           puts "\n" + cmd + "\n"
           exec cmd
         end

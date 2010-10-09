@@ -1,8 +1,8 @@
 var http = require('http'),
   url = require('url'),
-  io = require('../io.js'),
-  jsCore = require('./js.class/core'),
-  msg = require('./message'),
+  io = require('../../lib/socket.io'),
+  jsCore = require('../../lib/js.class/core'),
+  msg = require('../models/message'),
   send404 = function(res){
     res.writeHead(404);
     res.write('404 Not Found');

@@ -1,4 +1,5 @@
-var jsCore = require('./js.class/core');
+var jsCore = require('../../lib/js.class/core');
+
 exports.createMessage = function(body, channelId, timestamp) {
   return new Message(body, channelId, timestamp);
 };
