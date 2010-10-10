@@ -4,10 +4,23 @@ var http = require('http'),
     configuration = require('../lib/configuration'),
     sys = require('sys'),
     pub = require('./controllers/publish_controller'),
-    sub = require('./controllers/subscribe_controller'),
-    cm = require('./models/channel_manager');
+    sub = require('./controllers/subscribe_controller');
 
 function App() {
+  var _this = this;
+  this.m = {};
+  
+  function model(name, file) {
+    var loaded = require('./models/' + file).load(_this);
+    if (loaded) {
+      _this.m[name] = loaded;
+    }
+  }
+  
+  model("ChannelManager", "channel_manager");
+  model("Channel", "channel");
+  model("Message", "message");
+  
   this.start = function(arguments) {
     var config = configuration.parse(arguments),
     send404 = function(res) {
@@ -15,8 +28,8 @@ function App() {
       res.write('404 Not Found');
       res.end();
     },
-    channelManager = cm.createChannelManager(config),
-    publishEndpoint = pub.createPublisherEndpoint(config, channelManager),
+    channelManager = new _this.m.ChannelManager(_this, config),
+    publishEndpoint = pub.createPublisherEndpoint(_this, config, channelManager),
     publisherServer = http.createServer(function(req, res) {
       var path = url.parse(req.url).pathname;
 

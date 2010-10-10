@@ -1,8 +1,8 @@
 var jsCore = require('../../lib/js.class/core'),
     msg = require('../models/message');
 
-exports.createPublisherEndpoint = function(configuration, channelManager){
-  return new PublisherEndpoint(configuration, channelManager);
+exports.createPublisherEndpoint = function(app, configuration, channelManager){
+  return new PublisherEndpoint(app, configuration, channelManager);
 };
 
 CHANNEL_CREATED = 'Channel created';
@@ -20,7 +20,8 @@ CHANNEL_MESSAGES_HEADER = 'X-Channel-Messages';
 
 var JS = jsCore.JS,
   PublisherEndpoint = new JS.Class({
-    initialize: function(configuration, channelManager) {
+    initialize: function(app, configuration, channelManager) {
+      this.app = app;
       this.configuration = configuration;
       this.channelManager = channelManager;
     },
@@ -86,7 +87,7 @@ var JS = jsCore.JS,
         body += chunk;
       });
       req.on('end', function() {
-        var message = msg.createMessage(body, channelId, new Date()),
+        var message = new _this.app.m.Message(body, channelId, new Date()),
             immediatePublishCount = _this.channelManager.publish(message);
 
         if (immediatePublishCount > 0) {

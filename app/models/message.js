@@ -1,8 +1,8 @@
 var jsCore = require('../../lib/js.class/core');
 
-exports.createMessage = function(body, channelId, timestamp) {
-  return new Message(body, channelId, timestamp);
-};
+// exports.createMessage = function(body, channelId, timestamp) {
+//   return new Message(body, channelId, timestamp);
+// };
 
 var JS = jsCore.JS,
 Message = new JS.Class({
@@ -19,4 +19,8 @@ Message = new JS.Class({
     return this.channelId + " " + this.timestamp.getTime().toString() + " " + this.body;
   }
 });
+
+exports.load = function(app) {
+  return Message;
+};
 
