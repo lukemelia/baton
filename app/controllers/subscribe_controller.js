@@ -15,7 +15,7 @@ var JS = jsCore.JS,
       }
       return false;
     },
-    attachSocketIoListener: function(server) {
+    attach: function(server) {
       var _this = this,
           ioListener = io.listen(server,
                                  { resource: this.config.subscribeSocketIOResource,

@@ -1,5 +1,6 @@
 var fs = require('fs'),
     configuration = require('../lib/configuration'),
+    util = require('../lib/util'),
     sys = require('sys');
 
 function App() {
@@ -42,8 +43,8 @@ function App() {
         publishController = new _this.c.PublishController(_this, config, channelManager),
         subscribeController = new _this.c.SubscribeController(_this, config, channelManager);
         
-    _this.publishServer = require('./servers/publish_server').start(config, publishController);
-    _this.subscribeServer = require('./servers/subscribe_server').start(config, subscribeController, channelManager);
+    _this.publishServer = util.startServer(config.publishPort, config.publishIpAddress, publishController);
+    _this.subscribeServer = util.startServer(config.subscribePort, config.subscribeIpAddress, subscribeController);
   };
 }
 exports.load = function() {

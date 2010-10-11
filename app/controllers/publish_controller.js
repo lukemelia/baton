@@ -20,6 +20,9 @@ var JS = jsCore.JS,
       this.configuration = configuration;
       this.channelManager = channelManager;
     },
+    attach: function(server) {
+      // no-op
+    },
     respondWith:function(res, status, message, channelId, numSubscribers, numMessages) {
       console.log(status.toString() + ': ' + message);
       var headers = {'Content-Type': 'text/html'};
