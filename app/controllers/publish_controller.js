@@ -21,7 +21,19 @@ var JS = jsCore.JS,
       this.channelManager = channelManager;
     },
     attach: function(server) {
-      // no-op
+      var _this = this;
+      server.get(this.configuration.publishPathRegexp, function(req, res, channelId) {
+        _this.handleHttpGet(channelId, res);
+      });
+      server.post(this.configuration.publishPathRegexp, function(req, res, channelId) {
+        _this.handleHttpPost(channelId, req, res);
+      });
+      server.put(this.configuration.publishPathRegexp, function(req, res, channelId) {
+        _this.handleHttpPut(channelId, res);
+      });
+      server.del(this.configuration.publishPathRegexp, function(req, res, channelId) {
+        _this.handleHttpDelete(channelId, res);
+      });
     },
     respondWith:function(res, status, message, channelId, numSubscribers, numMessages) {
       console.log(status.toString() + ': ' + message);
@@ -43,33 +55,6 @@ var JS = jsCore.JS,
       res.writeHead(status, headers);
       res.write(message);
       res.end();
-    },
-    handle: function(path, req, res) {
-      console.log("publishController#handle: " + req.method + ": " + path);
-
-      var channelId = this.configuration.extractChannelIdFromPublishPath(path);
-      if (!channelId) {
-        return false;
-      }
-      console.log("Channel is " + channelId);
-
-      switch(req.method) {
-        case HTTP_POST:
-          this.handleHttpPost(channelId, req, res);
-          return true;
-        case HTTP_GET:
-          this.handleHttpGet(channelId, res);
-          return true;
-        case HTTP_PUT:
-          this.handleHttpPut(channelId, res);
-          return true;
-        case HTTP_DELETE:
-          this.handleHttpDelete(channelId, res);
-          return true;
-        default:
-          this.respondWith(res, 405, "Unhandled HTTP method: '" + req.method + "'");
-      }
-      return false;
     },
     handleHttpGet: function(channelId, res) {
       if (this.channelManager.exists(channelId)) {

@@ -22,3 +22,11 @@ end
 
 desc "Run the specs"
 task :default => :spec
+
+desc "Install latest modules"
+task "npm:install" do
+  npmfile = File.open("Npmfile")
+  npmfile.lines.each do |line|
+    `npm install #{line}`
+  end
+end

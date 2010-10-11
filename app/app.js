@@ -7,6 +7,7 @@ function App() {
   var _this = this;
   this.m = {};
   this.c = {};
+  this.logger = require('node-logger').createLogger();
   
   function model(name, file) {
     var loaded = require('./models/' + file).load(_this);
@@ -29,22 +30,18 @@ function App() {
   controller("PublishController", 'publish_controller');
   controller("SubscribeController", 'subscribe_controller');
   
+  
   this.start = function(arguments) {
     var config = configuration.parse(arguments);
     
-    console.log('----------\nStarting subscriber socket server (%s:%s) and RESTful publisher server (%s:%s)',
-                  config.subscribeIpAddress,
-                  config.subscribePort,
-                  config.publishIpAddress,
-                  config.publishPort);
-    
+    _this.logger.setLevel(config.level);
     
     var channelManager = new _this.m.ChannelManager(_this, config),
         publishController = new _this.c.PublishController(_this, config, channelManager),
         subscribeController = new _this.c.SubscribeController(_this, config, channelManager);
         
-    _this.publishServer = util.startServer(config.publishPort, config.publishIpAddress, publishController);
-    _this.subscribeServer = util.startServer(config.subscribePort, config.subscribeIpAddress, subscribeController);
+    _this.publishServer = util.starServerWithRouter(_this, config.publishPort, config.publishIpAddress, publishController);
+    _this.subscribeServer = util.startServer(_this, config.subscribePort, config.subscribeIpAddress, subscribeController);
   };
 }
 exports.load = function() {
