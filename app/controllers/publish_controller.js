@@ -1,9 +1,4 @@
-var jsCore = require('../../lib/js.class/core'),
-    msg = require('../models/message');
-
-exports.createPublisherEndpoint = function(app, configuration, channelManager){
-  return new PublisherEndpoint(app, configuration, channelManager);
-};
+var jsCore = require('../../lib/js.class/core');
 
 CHANNEL_CREATED = 'Channel created';
 CHANNEL_DELETED = 'Channel deleted';
@@ -19,7 +14,7 @@ CHANNEL_SUBSCRIBERS_HEADER = 'X-Channel-Subscribers';
 CHANNEL_MESSAGES_HEADER = 'X-Channel-Messages';
 
 var JS = jsCore.JS,
-  PublisherEndpoint = new JS.Class({
+  PublishController = new JS.Class({
     initialize: function(app, configuration, channelManager) {
       this.app = app;
       this.configuration = configuration;
@@ -47,7 +42,7 @@ var JS = jsCore.JS,
       res.end();
     },
     handle: function(path, req, res) {
-      console.log("publishEndpoint: " + req.method + ": " + path);
+      console.log("publishController#handle: " + req.method + ": " + path);
 
       var channelId = this.configuration.extractChannelIdFromPublishPath(path);
       if (!channelId) {
@@ -114,3 +109,7 @@ var JS = jsCore.JS,
       }
     }
 });
+
+exports.load = function(app){
+  return PublishController;
+};
