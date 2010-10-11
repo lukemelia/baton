@@ -40,7 +40,7 @@ var JS = jsCore.JS,
       };
 
       ioListener.on('connection', function(client){
-        console.log("client connected to websocket");
+        _this.app.logger.debug("client connected to websocket");
         client.subscribedChannels = [];
 
         process.nextTick(function () {
@@ -48,7 +48,7 @@ var JS = jsCore.JS,
         });
 
         client.on('message', function(message){
-          console.log("received message over websocket: " + message);
+          _this.app.logger.debug("received message over websocket: " + message);
           var subscribePattern = /^SUBSCRIBE ([A-Za-z0-9_]+)(?: SINCE ([0-9.]+))?$/,
               match = subscribePattern.exec(message);
           if (match) {

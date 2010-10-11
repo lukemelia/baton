@@ -21,21 +21,21 @@ ChannelManager = new JS.Class({
     }
   },
   numSubscribers: function(channelId) {
-    console.log("numSubscribers(" + channelId + ")");
+    this.app.logger.debug("numSubscribers(" + channelId + ")");
     if (this.exists(channelId)) {
-      console.log("num subs: " + this.channels[channelId].numSubscribers());
+      this.app.logger.debug("num subs: " + this.channels[channelId].numSubscribers());
       return this.channels[channelId].numSubscribers();
     } else {
       return null;
     }
   },
   numMessages: function(channelId) {
-    console.log("numMessages(" + channelId + ")");
+    this.app.logger.debug("numMessages(" + channelId + ")");
     if (this.exists(channelId)) {
-      console.log(this.channels[channelId].numMessages());
+      this.app.logger.debug(this.channels[channelId].numMessages());
       return this.channels[channelId].numMessages();
     } else {
-      console.log('null');
+      this.app.logger.debug('null');
       return null;
     }
   },
@@ -43,9 +43,9 @@ ChannelManager = new JS.Class({
     this.create(channelId);
   },
   publish: function(message) {
-    console.log("publish(" + message.toString() + ")");
+    this.app.logger.debug("publish(" + message.toString() + ")");
 
-    console.log("this.configuration.storeMessages = " + this.configuration.storeMessages);
+    this.app.logger.debug("this.configuration.storeMessages = " + this.configuration.storeMessages);
     if (this.configuration.storeMessages) {
       this.addToChannelMessageQueue(message);
     }
@@ -65,7 +65,7 @@ ChannelManager = new JS.Class({
   },
   addToChannelMessageQueue: function(message) {
     var channelId = message.channelId;
-    console.log("addToChannelMessageQueue(" + channelId + ", '" + message.body + "')");
+    this.app.logger.debug("addToChannelMessageQueue(" + channelId + ", '" + message.body + "')");
     if (!this.exists(channelId)) {
       this.channels[channelId] = new this.app.m.Channel(channelId);
     }
@@ -78,10 +78,10 @@ ChannelManager = new JS.Class({
     if (channel.numMessages() > this.configuration.maxMessages) {
       channel.messages.pop();
     }
-    console.log("completed addToChannelMessageQueue(" + channelId + ", '" + message.body + "')");
+    this.app.logger.debug("completed addToChannelMessageQueue(" + channelId + ", '" + message.body + "')");
   },
   registerSubscriber: function(channelId, client, since) {
-    console.log("registerSubscriber(" + channelId + ", client{" + client.sessionId + "}, " + since + ")");
+    this.app.logger.debug("registerSubscriber(" + channelId + ", client{" + client.sessionId + "}, " + since + ")");
 
     this.ensureCreated(channelId);
     this.channels[channelId].subscribe(client);
@@ -107,7 +107,7 @@ ChannelManager = new JS.Class({
     client.subscribedChannels = [];
   },
   deliverQueuedMessages: function(channelId, client, since) {
-    console.log("deliverQueuedMessages(" + channelId + ", client{" + client.sessionId + "}, " + since.toString() + ")");
+    this.app.logger.debug("deliverQueuedMessages(" + channelId + ", client{" + client.sessionId + "}, " + since.toString() + ")");
     if (!this.exists(channelId) || this.channels[channelId].numMessages == 0) return;
     var _this = this;
     _(this.channels[channelId].messages).chain().reverse().each(function(message) {
@@ -118,7 +118,7 @@ ChannelManager = new JS.Class({
   },
   sendMessage: function(client, message) {
     client.send(message.toString());
-    console.log("sent " + message.toString() + " to client{" + client.sessionId + "})");
+    this.app.logger.debug("sent " + message.toString() + " to client{" + client.sessionId + "})");
   },
   popSubscriberMessage: function(client) {
     if (this.subscriberMessages[client] && this.subscriberMessages[client].length > 0) {
@@ -128,18 +128,18 @@ ChannelManager = new JS.Class({
     }
   },
   deleteChannel: function(channelId) {
-    console.log("deleteChannel(" + channelId + ")");
+    this.app.logger.debug("deleteChannel(" + channelId + ")");
     if (!this.exists(channelId)) { return false; }
     this.initiateChannelUnsubscribes(channelId, 'CHANNEL DELETED');
     delete this.channels[channelId];
     return true;
   },
   initiateChannelUnsubscribes: function(channelId, reason) {
-    console.log("initiateChannelUnsubscribes(" + channelId + ")");
+    this.app.logger.debug("initiateChannelUnsubscribes(" + channelId + ")");
     if (!this.exists(channelId)) { return; }
     var _this = this;
 
-    console.log("typeof this.channels[channelId].subscribers: " + typeof this.channels[channelId].subscribers);
+    this.app.logger.debug("typeof this.channels[channelId].subscribers: " + typeof this.channels[channelId].subscribers);
     _.each(this.channels[channelId].subscribers, function(client) {
       process.nextTick(function () {
         client.subscribedChannels = _(client.subscribedChannels).reject(function(el){ return el == channelId; });

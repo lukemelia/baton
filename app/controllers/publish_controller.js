@@ -36,7 +36,7 @@ var JS = jsCore.JS,
       });
     },
     respondWith:function(res, status, message, channelId, numSubscribers, numMessages) {
-      console.log(status.toString() + ': ' + message);
+      this.app.logger.debug(status.toString() + ': ' + message);
       var headers = {'Content-Type': 'text/html'};
       if (numSubscribers === undefined) {
           numSubscribers = this.channelManager.numSubscribers(channelId);
