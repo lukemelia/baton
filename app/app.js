@@ -34,7 +34,9 @@ function App() {
   this.start = function(arguments) {
     var config = configuration.parse(arguments);
     
-    _this.logger.setLevel(config.level);
+    if (config.debug) {
+      _this.logger.setLevel('debug');
+    }
     
     var channelManager = new _this.m.ChannelManager(_this, config),
         publishController = new _this.c.PublishController(_this, config, channelManager),

@@ -6,25 +6,28 @@ ChannelManager = new JS.Class({
   initialize: function(app, configuration) {
     this.app = app;
     this.configuration = configuration;
-    this.channels = {};
     this.subscriberMessages = {};
+    if (configuration.backend == 'memory') {
+      this.backend = require('../../lib/backends/memory_backend').load(this.app);
+    }
   },
   exists: function(channelId) {
-    return (!!this.channels[channelId]);
+    return this.backend.exists(channelId);
   },
   create: function(channelId) {
     if (this.exists(channelId)) {
       return false;
     } else {
-      this.channels[channelId] = new this.app.m.Channel(channelId);
+      this.backend.create(channelId);
       return true;
     }
   },
   numSubscribers: function(channelId) {
     this.app.logger.debug("numSubscribers(" + channelId + ")");
     if (this.exists(channelId)) {
-      this.app.logger.debug("num subs: " + this.channels[channelId].numSubscribers());
-      return this.channels[channelId].numSubscribers();
+      var numSubs = this.backend.numSubscribers(channelId);
+      this.app.logger.debug("num subs: " + numSubs);
+      return numSubs;
     } else {
       return null;
     }
@@ -32,8 +35,9 @@ ChannelManager = new JS.Class({
   numMessages: function(channelId) {
     this.app.logger.debug("numMessages(" + channelId + ")");
     if (this.exists(channelId)) {
-      this.app.logger.debug(this.channels[channelId].numMessages());
-      return this.channels[channelId].numMessages();
+      var numMessages  = this.backend.numMessages(channelId);
+      this.app.logger.debug(numMessages);
+      return numMessages;
     } else {
       this.app.logger.debug('null');
       return null;
@@ -53,7 +57,7 @@ ChannelManager = new JS.Class({
     var _this = this,
         immediatePublishCount = 0;
     if (this.exists(message.channelId)) {
-      _(this.channels[message.channelId].subscribers).each(function(client) {
+      this.backend.eachSubscriber(message.channelId, function(client) {
         if (!_this.subscriberMessages[client]) {
           _this.subscriberMessages[client] = [];
         }
@@ -67,16 +71,15 @@ ChannelManager = new JS.Class({
     var channelId = message.channelId;
     this.app.logger.debug("addToChannelMessageQueue(" + channelId + ", '" + message.body + "')");
     if (!this.exists(channelId)) {
-      this.channels[channelId] = new this.app.m.Channel(channelId);
+      this.backend.createChannel(channelId);
     }
-    var channel = this.channels[channelId];
-    if (channel.numMessages() > 0 && _(channel.messages).last().timestamp.to_i == message.timestamp.to_i) {
+    if (this.backend.anyMessages(channelId) && this.backend.lastMessage(channelId).timestamp.to_i == message.timestamp.to_i) {
       message.incrementTimestamp();
     }
-    channel.messages.unshift(message);
+    this.backend.addMessage(channelId, message);
 
-    if (channel.numMessages() > this.configuration.maxMessages) {
-      channel.messages.pop();
+    if (this.backend.numMessages(channelId) > this.configuration.maxMessages) {
+      this.backend.popMessage(channelId);
     }
     this.app.logger.debug("completed addToChannelMessageQueue(" + channelId + ", '" + message.body + "')");
   },
@@ -84,7 +87,7 @@ ChannelManager = new JS.Class({
     this.app.logger.debug("registerSubscriber(" + channelId + ", client{" + client.sessionId + "}, " + since + ")");
 
     this.ensureCreated(channelId);
-    this.channels[channelId].subscribe(client);
+    this.backend.subscribe(channelId, client);
     client.subscribedChannels.push(channelId);
     client.send("SUBSCRIBED " + channelId);
 
@@ -101,16 +104,19 @@ ChannelManager = new JS.Class({
     var _this = this;
     _(client.subscribedChannels).each(function(channelId){
       if (_this.exists(channelId)) {
-        _this.channels[channelId].unsubscribe(client);
+        _this.backend.unsubscribe(channelId, client);
       }
     });
     client.subscribedChannels = [];
   },
   deliverQueuedMessages: function(channelId, client, since) {
     this.app.logger.debug("deliverQueuedMessages(" + channelId + ", client{" + client.sessionId + "}, " + since.toString() + ")");
-    if (!this.exists(channelId) || this.channels[channelId].numMessages == 0) return;
+    if (!this.exists(channelId) || !this.backend.anyMessages(channelId)) {
+      this.app.logger.debug("No messages queued for channel " + channelId + ".");
+      return;
+    }
     var _this = this;
-    _(this.channels[channelId].messages).chain().reverse().each(function(message) {
+    this.backend.eachMessage(channelId, function(message){
       if (message.timestamp > since) {
         _this.sendMessage(client, message);
       }
@@ -131,7 +137,7 @@ ChannelManager = new JS.Class({
     this.app.logger.debug("deleteChannel(" + channelId + ")");
     if (!this.exists(channelId)) { return false; }
     this.initiateChannelUnsubscribes(channelId, 'CHANNEL DELETED');
-    delete this.channels[channelId];
+    this.backend.deleteChannel(channelId);
     return true;
   },
   initiateChannelUnsubscribes: function(channelId, reason) {
@@ -139,8 +145,8 @@ ChannelManager = new JS.Class({
     if (!this.exists(channelId)) { return; }
     var _this = this;
 
-    this.app.logger.debug("typeof this.channels[channelId].subscribers: " + typeof this.channels[channelId].subscribers);
-    _.each(this.channels[channelId].subscribers, function(client) {
+    this.app.logger.debug("typeof this.backend.subscribers(channelId): " + typeof this.backend.subscribers(channelId));
+    _.each(this.backend.subscribers(channelId), function(client) {
       process.nextTick(function () {
         client.subscribedChannels = _(client.subscribedChannels).reject(function(el){ return el == channelId; });
         client.send("UNSUBSCRIBED " + channelId + ' (' + reason + ')');
